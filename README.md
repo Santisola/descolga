@@ -62,7 +62,30 @@ manda el backend. En desarrollo, con el dev server andando:
 npm run tick           # pega a /api/cron/tick cada 60 s y loguea qué salió
 ```
 
-En Vercel, `vercel.json` ya declara el cron cada minuto.
+**En producción el tick lo dispara un cron externo, no Vercel.** El plan Hobby de
+Vercel sólo admite cron *una vez por día* — una expresión más frecuente hace fallar
+el deploy. `vercel.json` deja un tick diario como red de seguridad, y la cadencia
+real la manda cualquier servicio que pegue al endpoint cada minuto:
+
+```
+POST https://<tu-app>.vercel.app/api/cron/tick
+Authorization: Bearer <CRON_SECRET>
+```
+
+El endpoint acepta `GET` y `POST`, y si el servicio no permite headers custom,
+también `?secret=<CRON_SECRET>` (queda en los logs de acceso: preferí el header).
+
+Opciones que sirven en su plan gratuito:
+
+| Servicio | Intervalo mínimo | Headers custom |
+| --- | --- | --- |
+| [cron-job.org](https://cron-job.org) | 1 min | Sí |
+| Cloudflare Workers (Cron Triggers) | 1 min | Sí |
+| GitHub Actions (`schedule`) | 5 min nominal, con demoras de 10–15 min | Sí |
+| Upstash QStash | free tier: 500 mensajes/día → alcanza para cada 3 min | Sí |
+
+Con Pro, alcanza con volver a poner `"schedule": "* * * * *"` en `vercel.json` y
+borrar el cron externo.
 
 ---
 
